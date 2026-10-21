@@ -56,6 +56,33 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const r1 = (n) => Math.round(n * 10) / 10;
 const pts = (list) => list.map(([x, y]) => `${r1(x)},${r1(y)}`).join(" ");
 
+/*
+ * Ширина текста без браузера: оценка сверху по классам символов (em). Сверена с самым
+ * широким шрифтом из font-family — San Francisco (-apple-system); Segoe UI и Arial уже.
+ * Нужна, чтобы длинные имена не вылезали за край картинки.
+ */
+function textWidth(str, size, bold = false) {
+  let em = 0;
+  for (const ch of str) {
+    if (" .,:;'|!ijlI".includes(ch)) em += 0.32;
+    else if ("()[]{}ftr-".includes(ch)) em += 0.44;
+    else if ("mwMWЖШЩЮЫМФжшщюымф@%".includes(ch)) em += 0.98;
+    else if (ch.codePointAt(0) >= 0x2e80) em += 1.25;           // иероглифы, эмодзи
+    else if (/[A-ZА-ЯЁ&…]/.test(ch)) em += 0.76;
+    else em += 0.63;
+  }
+  return em * size * (bold ? 1.06 : 1);
+}
+
+// Обрезает строку с «…», чтобы она уложилась в px пикселей.
+function fit(str, px, size, bold = false) {
+  const s = String(str);
+  if (textWidth(s, size, bold) <= px) return s;
+  const chars = Array.from(s);
+  while (chars.length && textWidth(chars.join("") + "…", size, bold) > px) chars.pop();
+  return chars.join("") + "…";
+}
+
 function plural(n, one, few, many) {
   const m10 = n % 10, m100 = n % 100;
   if (m10 === 1 && m100 !== 11) return one;
@@ -67,8 +94,10 @@ function plural(n, one, few, many) {
  * Раскладка: самые высокие дома — в глубине, низкие — впереди,
  * чтобы ничего не загораживало. Клетки обходятся по диагоналям.
  */
+const byCommits = (a, b) => b.commits - a.commits || a.name.localeCompare(b.name);
+
 function layout(repos) {
-  const sorted = [...repos].sort((a, b) => b.commits - a.commits || a.name.localeCompare(b.name));
+  const sorted = [...repos].sort(byCommits);
   const n = Math.max(2, Math.ceil(Math.sqrt(sorted.length)));
   const cells = [];
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) cells.push([i, j]);
@@ -77,9 +106,18 @@ function layout(repos) {
   return { n, placed: sorted.map((repo, k) => ({ repo, i: cells[k][0], j: cells[k][1] })), free: cells.slice(sorted.length) };
 }
 
-function render(data, { theme = "light", title = true } = {}) {
+/*
+ * Больше 36 домов (сетка 6×6, ширина ~960px) в колонке README уже не читается:
+ * GitHub ужимает картинку, и подписи становятся мельче 6px. Поэтому рисуем
+ * только самые большие репозитории, а в подзаголовке пишем, сколько их всего.
+ */
+const MAX_HOUSES = 36;
+
+function render(data, { theme = "light", title = true, max = MAX_HOUSES } = {}) {
   const t = THEMES[theme];
-  const repos = data.repos;
+  const all = data.repos;
+  const repos = max > 0 && all.length > max ? [...all].sort(byCommits).slice(0, max) : all;
+  const hidden = all.length - repos.length;
   const { n, placed, free } = layout(repos);
   const U = 46;            // половина ширины клетки в пикселях
   const CELL = 1.6;        // размер клетки в единицах сетки
@@ -88,9 +126,11 @@ function render(data, { theme = "light", title = true } = {}) {
   const heightOf = (c) => 22 + 150 * Math.sqrt(c / maxCommits);
   const tallest = heightOf(maxCommits);
 
+  const LABEL_PX = 2 * CELL * U - 8;
   const pad = 40;
   const ox = n * CELL * U + pad;
-  const oy = tallest + pad + (title ? 52 : 18);
+  // Если показаны не все репозитории, под заголовком есть ещё одна строка.
+  const oy = tallest + pad + (title ? (hidden ? 68 : 52) : 18);
   const P = (x, y, z = 0) => [ox + (x - y) * U, oy + (x + y) * U / 2 - z];
 
   const W = ox * 2;
@@ -100,8 +140,11 @@ function render(data, { theme = "light", title = true } = {}) {
   const rand = rng(seed);
 
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(W)}" height="${Math.round(H)}" viewBox="0 0 ${Math.round(W)} ${Math.round(H)}" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-labelledby="city-title">`);
-  const totalCommits = repos.reduce((a, r) => a + r.commits, 0);
-  out.push(`<title id="city-title">Город репозиториев ${esc(data.user)}: ${repos.length} ${plural(repos.length, "дом", "дома", "домов")}, ${totalCommits} ${plural(totalCommits, "коммит", "коммита", "коммитов")}</title>`);
+  const totalCommits = all.reduce((a, r) => a + r.commits, 0);
+  const commitsText = `${totalCommits} ${plural(totalCommits, "коммит", "коммита", "коммитов")}`;
+  const housesText = `${repos.length} ${plural(repos.length, "дом", "дома", "домов")}` +
+    (hidden ? ` (из ${all.length} ${plural(all.length, "репозитория", "репозиториев", "репозиториев")})` : "");
+  out.push(`<title id="city-title">Город репозиториев ${esc(data.user)}: ${housesText}, ${commitsText}</title>`);
   out.push(`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.skyTop}"/><stop offset="1" stop-color="${t.skyBottom}"/></linearGradient>`);
   out.push(`<style>.lbl{font-size:11px;font-weight:600;fill:${t.text};paint-order:stroke;stroke:${t.halo};stroke-width:3px;stroke-linejoin:round}.cnt{font-size:10px;font-weight:500;fill:${t.muted}}` +
     (theme === "dark" ? `@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}.on{animation:blink 4s ease-in-out infinite}.tw{animation:blink 3s ease-in-out infinite}` : "") +
@@ -125,8 +168,13 @@ function render(data, { theme = "light", title = true } = {}) {
   }
 
   if (title) {
-    out.push(`<text x="${pad - 16}" y="34" font-size="18" font-weight="700" fill="${t.text}">${esc(data.user)}</text>`);
-    out.push(`<text x="${pad - 16}" y="54" font-size="12" fill="${t.muted}">${repos.length} ${plural(repos.length, "репозиторий", "репозитория", "репозиториев")} · ${totalCommits} ${plural(totalCommits, "коммит", "коммита", "коммитов")}</text>`);
+    // Заголовок не должен заходить на солнце/луну (их левый край — cx - 26).
+    const room = cx - 26 - 8 - (pad - 16);
+    const sub = `${all.length} ${plural(all.length, "репозиторий", "репозитория", "репозиториев")} · ${commitsText}`;
+    out.push(`<text x="${pad - 16}" y="34" font-size="18" font-weight="700" fill="${t.text}">${esc(fit(data.user, room, 18, true))}</text>`);
+    out.push(`<text x="${pad - 16}" y="54" font-size="12" fill="${t.muted}">${esc(fit(sub, room, 12))}</text>`);
+    // Отдельной строкой, чтобы пометка о неполной картинке не обрезалась на узком холсте.
+    if (hidden) out.push(`<text x="${pad - 16}" y="70" font-size="12" fill="${t.muted}">${esc(fit(`на картинке ${repos.length} крупнейших`, room, 12))}</text>`);
   }
 
   // Земля: плита толщиной 10px.
@@ -195,7 +243,9 @@ function render(data, { theme = "light", title = true } = {}) {
 
     // Подписи — после всех домов, чтобы передние дома их не закрывали.
     const [lx, ly] = P(x0 + FOOT / 2, y0 + FOOT / 2, h);
-    labels.push(`<text class="lbl" x="${r1(lx)}" y="${r1(ly - 16)}" text-anchor="middle">${esc(repo.name)}</text>`);
+    // Имя не шире клетки: тогда соседние подписи не наезжают друг на друга и не уходят за край.
+    // Полное имя остаётся в <title> дома.
+    labels.push(`<text class="lbl" x="${r1(lx)}" y="${r1(ly - 16)}" text-anchor="middle">${esc(fit(repo.name, LABEL_PX, 11, true))}</text>`);
     labels.push(`<text class="lbl cnt" x="${r1(lx)}" y="${r1(ly - 4)}" text-anchor="middle">${repo.commits} ${plural(repo.commits, "коммит", "коммита", "коммитов")}</text>`);
   }
   out.push(...labels);
@@ -204,4 +254,4 @@ function render(data, { theme = "light", title = true } = {}) {
   return out.join("\n") + "\n";
 }
 
-module.exports = { render, layout, shade, plural, LANG_COLORS };
+module.exports = { render, layout, shade, plural, fit, textWidth, MAX_HOUSES, LANG_COLORS };

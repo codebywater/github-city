@@ -32,7 +32,19 @@ async function countCommits(owner, repo, token) {
   }
 }
 
-async function fetchCity(user, { token, includeForks = false, includeArchived = true, exclude = [] } = {}) {
+/*
+ * Репозиторий, в который action коммитит картинку (host = "владелец/репо", обычно GITHUB_REPOSITORY).
+ * Если он принадлежит тому же пользователю, его нужно исключить: иначе каждый коммит
+ * «Update GitHub City» меняет число коммитов в нём, картинка меняется — и так каждый день.
+ * Вычитать только коммиты бота нельзя надёжно: API не фильтрует по сообщению,
+ * а при фильтре по автору заголовок Link отдаёт rel="last" с page=0.
+ */
+function hostRepo(user, host) {
+  const [owner, repo] = String(host || "").split("/");
+  return owner && repo && owner.toLowerCase() === String(user).toLowerCase() ? repo : null;
+}
+
+async function fetchCity(user, { token, includeForks = false, includeArchived = true, exclude = [], host } = {}) {
   const repos = [];
   for (let page = 1; ; page++) {
     const res = await api(`https://api.github.com/users/${user}/repos?type=owner&per_page=100&page=${page}`, token);
@@ -40,7 +52,8 @@ async function fetchCity(user, { token, includeForks = false, includeArchived = 
     repos.push(...batch);
     if (batch.length < 100) break;
   }
-  const skip = new Set([user.toLowerCase(), ...exclude.map((x) => x.toLowerCase())]);
+  const self = hostRepo(user, host);
+  const skip = new Set([user.toLowerCase(), ...exclude, ...(self ? [self] : [])].map((x) => x.toLowerCase()));
   const picked = repos.filter((r) => !r.private && (includeForks || !r.fork) && (includeArchived || !r.archived) &&
     !skip.has(r.name.toLowerCase()));
   const out = [];
@@ -51,4 +64,4 @@ async function fetchCity(user, { token, includeForks = false, includeArchived = 
   return { user, repos: out.filter((r) => r.commits > 0) };
 }
 
-module.exports = { fetchCity, countCommits };
+module.exports = { fetchCity, countCommits, hostRepo };
