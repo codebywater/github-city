@@ -20,7 +20,7 @@ test("раскладка: самый высокий дом в глубине, в
 
 test("SVG: корректная разметка, подписи и подсказки для каждого дома", () => {
   for (const theme of ["light", "dark"]) {
-    const svg = render(data, { theme });
+    const svg = render(data, { theme, lang: "ru" });
     assert.match(svg, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
     assert.match(svg, /<\/svg>\n$/);
     assert.match(svg, /5 репозиториев · 1110 коммитов/);
@@ -54,7 +54,7 @@ const width = (svg) => Number(/width="(\d+)"/.exec(svg)[1]);
 const many = (count) => Array.from({ length: count }, (_, k) => ({ name: `repo-${k}`, language: "Go", commits: 1000 - k }));
 
 test("много репозиториев: рисуются 36 самых больших, холст не растёт", () => {
-  const svg = render({ user: "u", repos: many(100) });
+  const svg = render({ user: "u", repos: many(100) }, { lang: "ru" });
   assert.equal((svg.match(/<g>/g) || []).length, 36);
   assert.equal(width(svg), width(render({ user: "u", repos: many(36) })));
   assert.ok(width(svg) < 1000, `ширина ${width(svg)}`);
@@ -100,7 +100,7 @@ test("fit: обрезает с многоточием, короткие стро
 
 test("регрессия: пометка «на картинке N крупнейших» — отдельной строкой и не обрезается", () => {
   const repos = Array.from({ length: 6 }, (_, i) => ({ name: `repo${i}`, language: "Go", commits: 10 + i }));
-  const svg = render({ user: "u", repos }, { max: 2 });
+  const svg = render({ user: "u", repos }, { max: 2, lang: "ru" });
   assert.match(svg, />на картинке 2 крупнейших</);
   assert.doesNotMatch(svg, /крупнейш[^<]*…/);
 });
@@ -111,4 +111,17 @@ test("регрессия: --max без значения — ошибка, а н�
   const r = spawnSync("node", [path.join(__dirname, "../src/cli.js"), "--data", path.join(__dirname, "../examples/data.json"), "--out", require("node:os").tmpdir(), "--max", ""], { encoding: "utf8" });
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /--max/);
+});
+
+test("английские подписи по умолчанию, русские по lang: ru, неизвестный язык — ошибка", () => {
+  const svg = render(data);
+  assert.match(svg, />5 repositories · 1110 commits</);
+  assert.match(svg, /example's repository city: 5 buildings, 1110 commits/);
+  assert.doesNotMatch(svg, /[а-яё]/i);
+  const one = render({ user: "u", repos: [{ name: "x", language: "Go", commits: 1 }] });
+  assert.match(one, />1 repository · 1 commit</);
+  assert.match(render(data, { lang: "ru" }), />5 репозиториев · 1110 коммитов</);
+  assert.throws(() => render(data, { lang: "de" }), /Unknown lang/);
+  const repos = Array.from({ length: 6 }, (_, i) => ({ name: `repo${i}`, language: "Go", commits: 10 + i }));
+  assert.match(render({ user: "u", repos }, { max: 2 }), />showing the 2 largest</);
 });

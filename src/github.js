@@ -12,7 +12,7 @@ async function api(url, token) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
-  if (!res.ok) throw new Error(`GitHub API ${res.status} для ${url}: ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) throw new Error(`GitHub API ${res.status} for ${url}: ${(await res.text()).slice(0, 200)}`);
   return res;
 }
 

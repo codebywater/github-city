@@ -1,5 +1,5 @@
 name: GitHub City
-description: Рисует изометрический город из ваших репозиториев для README профиля. Высота дома — число коммитов.
+description: Draws an isometric SVG city of your repositories for your profile README. Building height grows with commits.
 author: codebywater
 branding:
   icon: home
@@ -7,26 +7,29 @@ branding:
 
 inputs:
   user:
-    description: Пользователь GitHub. По умолчанию — владелец репозитория.
+    description: GitHub user whose city to draw. Defaults to the repository owner.
     default: ${{ github.repository_owner }}
   out:
-    description: Папка для city-light.svg и city-dark.svg.
+    description: Folder for city-light.svg and city-dark.svg.
     default: assets
   exclude:
-    description: Репозитории, которые не нужно показывать, через запятую.
+    description: Comma-separated repositories to hide.
     default: ""
   forks:
-    description: Показывать форки (true/false).
+    description: Include forks (true/false).
     default: "false"
   max-repos:
-    description: Сколько домов рисовать — самые большие по коммитам. 0 — без ограничения.
+    description: How many buildings to draw (the largest by commits). 0 = no limit.
     default: "36"
   commit:
-    description: Закоммитить картинки, если они изменились (true/false).
+    description: Commit the images when they change (true/false).
     default: "true"
   token:
-    description: Токен для GitHub API.
+    description: Token for the GitHub API.
     default: ${{ github.token }}
+  lang:
+    description: Language of the labels on the picture, en or ru.
+    default: en
 
 runs:
   using: composite
@@ -40,11 +43,12 @@ runs:
         CITY_EXCLUDE: ${{ inputs.exclude }}
         CITY_FORKS: ${{ inputs.forks }}
         CITY_MAX: ${{ inputs.max-repos }}
+        CITY_LANG: ${{ inputs.lang }}
         # Репозиторий, куда коммитится картинка, в город не попадает: иначе каждый
         # коммит «Update GitHub City» менял бы картинку и коммиты шли бы каждый день.
         CITY_HOST: ${{ github.repository }}
       run: |
-        args=("$CITY_USER" --out "$CITY_OUT" --host "$CITY_HOST")
+        args=("$CITY_USER" --out "$CITY_OUT" --host "$CITY_HOST" --lang "${CITY_LANG:-en}")
         # Пустое max-repos — значение по умолчанию, а не «без ограничения».
         [ -n "$CITY_MAX" ] && args+=(--max "$CITY_MAX")
         [ -n "$CITY_EXCLUDE" ] && args+=(--exclude "$CITY_EXCLUDE")
@@ -60,12 +64,12 @@ runs:
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add "$CITY_OUT"/city-*.svg
         if git diff --cached --quiet; then
-          echo "Город не изменился."
+          echo "The city has not changed."
           # GitHub отключает расписание в публичном репозитории после 60 дней без активности.
           last=$(git log -1 --format=%ct 2>/dev/null || echo 0)
           days=$(( ($(date +%s) - last) / 86400 ))
           if [ "$days" -ge 50 ]; then
-            echo "::warning title=GitHub City::В репозитории нет коммитов уже $days дн. После 60 дней GitHub отключит запуск по расписанию. Сделайте любой коммит, а если расписание уже отключено — Actions → GitHub City → Enable workflow."
+            echo "::warning title=GitHub City::No commits in this repository for $days days. GitHub disables scheduled runs after 60 days of inactivity. Make any commit; if the schedule is already disabled, use Actions → GitHub City → Enable workflow."
           fi
           exit 0
         fi
@@ -75,10 +79,10 @@ runs:
         branch="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
         for attempt in 1 2 3; do
           git push origin "HEAD:$branch" && exit 0
-          echo "Push отклонён (попытка $attempt), подтягиваю изменения из $branch."
+          echo "Push rejected (attempt $attempt), pulling changes from $branch."
           sleep "$attempt"
           git fetch origin "$branch"
           git rebase -X theirs FETCH_HEAD || { git rebase --abort; exit 1; }
         done
-        echo "::error title=GitHub City::Не удалось запушить картинки в $branch."
+        echo "::error title=GitHub City::Could not push the images to $branch."
         exit 1

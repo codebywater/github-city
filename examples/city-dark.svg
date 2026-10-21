@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="522" height="533" viewBox="0 0 522 533" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-labelledby="city-title">
-<title id="city-title">Город репозиториев example: 5 домов, 1110 коммитов</title>
+<title id="city-title">example's repository city: 5 buildings, 1110 commits</title>
 <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05070d"/><stop offset="1" stop-color="#131a2a"/></linearGradient>
 <style>.lbl{font-size:11px;font-weight:600;fill:#e6edf3;paint-order:stroke;stroke:#0d1117;stroke-width:3px;stroke-linejoin:round}.cnt{font-size:10px;font-weight:500;fill:#9198a1}@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}.on{animation:blink 4s ease-in-out infinite}.tw{animation:blink 3s ease-in-out infinite}@media (prefers-reduced-motion:reduce){.on,.tw{animation:none}}</style></defs>
 <rect width="100%" height="100%" rx="12" fill="url(#sky)"/>
@@ -45,7 +45,7 @@
 <circle class="tw" style="animation-delay:0.5s" cx="451.1" cy="171.9" r="0.9" fill="#ffffff" opacity="0.4"/>
 <circle cx="471.6" cy="50" r="16" fill="#f4f1de"/><circle cx="478.6" cy="45" r="14" fill="#05070d"/>
 <text x="24" y="34" font-size="18" font-weight="700" fill="#e6edf3">example</text>
-<text x="24" y="54" font-size="12" fill="#9198a1">5 репозиториев · 1110 коммитов</text>
+<text x="24" y="54" font-size="12" fill="#9198a1">5 repositories · 1110 commits</text>
 <polygon points="40,374.4 260.8,484.8 260.8,494.8 40,384.4" fill="#0f141d"/>
 <polygon points="481.6,374.4 260.8,484.8 260.8,494.8 481.6,384.4" fill="#0d1119"/>
 <polygon points="260.8,264 481.6,374.4 260.8,484.8 40,374.4" fill="#232c3b"/>
@@ -58,7 +58,7 @@
 <polygon points="187.2,382.7 244.2,411.2 187.2,439.7 130.2,411.2" fill="#153721"/>
 <polygon points="334.4,382.7 391.4,411.2 334.4,439.7 277.4,411.2" fill="#153721"/>
 <polygon points="260.8,419.5 317.8,448 260.8,476.5 203.8,448" fill="#153721"/>
-<g><title>web: 512 коммитов, TypeScript</title>
+<g><title>web: 512 commits, TypeScript</title>
 <polygon points="217.1,300.8 260.8,322.7 260.8,150.6 217.1,128.8" fill="#255a95"/>
 <polygon points="260.8,322.7 304.5,300.8 304.5,128.8 260.8,150.6" fill="#193c63"/>
 <polygon points="260.8,107 304.5,128.8 260.8,150.6 217.1,128.8" fill="#6fa1d7"/>
@@ -111,7 +111,7 @@
 <polygon points="270.4,164.8 279.2,160.5 279.2,154.5 270.4,158.8" fill="#ffd866" opacity="1"/>
 <polygon points="286.1,157 294.9,152.6 294.9,146.6 286.1,151" fill="#2b3446" opacity="1"/>
 </g>
-<g><title>api: 340 коммитов, Go</title>
+<g><title>api: 340 commits, Go</title>
 <polygon points="143.5,337.6 187.2,359.5 187.2,215.2 143.5,193.4" fill="#0082a2"/>
 <polygon points="187.2,359.5 230.9,337.6 230.9,193.4 187.2,215.2" fill="#00576c"/>
 <polygon points="187.2,171.5 230.9,193.4 187.2,215.2 143.5,193.4" fill="#4dc6e4"/>
@@ -156,7 +156,7 @@
 <polygon points="196.8,227.6 205.6,223.3 205.6,217.3 196.8,221.6" fill="#ffd866" opacity="1"/>
 <polygon points="212.5,219.8 221.3,215.4 221.3,209.4 212.5,213.8" fill="#2b3446" opacity="1"/>
 </g>
-<g><title>firmware: 129 коммитов, C</title>
+<g><title>firmware: 129 commits, C</title>
 <polygon points="290.7,337.6 334.4,359.5 334.4,262.2 290.7,240.3" fill="#535961"/>
 <polygon points="334.4,359.5 378.1,337.6 378.1,240.3 334.4,262.2" fill="#373b41"/>
 <polygon points="334.4,218.5 378.1,240.3 334.4,262.2 290.7,240.3" fill="#9a9fa7"/>
@@ -194,7 +194,7 @@
 <rect x="429" y="367.4" width="3" height="6" fill="#5c4632"/>
 <polygon points="430.5,348.1 437.5,368.4 430.5,370.4" fill="#215a35"/>
 <polygon points="430.5,348.1 423.5,368.4 430.5,370.4" fill="#2f7a49"/>
-<g><title>bot: 88 коммитов, Python</title>
+<g><title>bot: 88 commits, Python</title>
 <polygon points="217.1,374.4 260.8,396.3 260.8,312.1 217.1,290.2" fill="#28567c"/>
 <polygon points="260.8,396.3 304.5,374.4 304.5,290.2 260.8,312.1" fill="#1b3953"/>
 <polygon points="260.8,268.4 304.5,290.2 260.8,312.1 217.1,290.2" fill="#729cc0"/>
@@ -219,7 +219,7 @@
 <polygon points="270.4,329.4 279.2,325.1 279.2,319.1 270.4,323.4" fill="#2b3446" opacity="1"/>
 <polygon points="286.1,321.6 294.9,317.2 294.9,311.2 286.1,315.6" fill="#2b3446" opacity="1"/>
 </g>
-<g><title>dotfiles: 41 коммит, Shell</title>
+<g><title>dotfiles: 41 commits, Shell</title>
 <polygon points="69.9,374.4 113.6,396.3 113.6,331.8 69.9,310" fill="#67a83d"/>
 <polygon points="113.6,396.3 157.3,374.4 157.3,310 113.6,331.8" fill="#457029"/>
 <polygon points="113.6,288.1 157.3,310 113.6,331.8 69.9,310" fill="#ace985"/>
@@ -268,13 +268,13 @@
 <polygon points="272.2,434.6 279.2,457.8 272.2,459.8" fill="#215a35"/>
 <polygon points="272.2,434.6 265.2,457.8 272.2,459.8" fill="#2f7a49"/>
 <text class="lbl" x="260.8" y="112.8" text-anchor="middle">web</text>
-<text class="lbl cnt" x="260.8" y="124.8" text-anchor="middle">512 коммитов</text>
+<text class="lbl cnt" x="260.8" y="124.8" text-anchor="middle">512 commits</text>
 <text class="lbl" x="187.2" y="177.4" text-anchor="middle">api</text>
-<text class="lbl cnt" x="187.2" y="189.4" text-anchor="middle">340 коммитов</text>
+<text class="lbl cnt" x="187.2" y="189.4" text-anchor="middle">340 commits</text>
 <text class="lbl" x="334.4" y="224.3" text-anchor="middle">firmware</text>
-<text class="lbl cnt" x="334.4" y="236.3" text-anchor="middle">129 коммитов</text>
+<text class="lbl cnt" x="334.4" y="236.3" text-anchor="middle">129 commits</text>
 <text class="lbl" x="260.8" y="274.2" text-anchor="middle">bot</text>
-<text class="lbl cnt" x="260.8" y="286.2" text-anchor="middle">88 коммитов</text>
+<text class="lbl cnt" x="260.8" y="286.2" text-anchor="middle">88 commits</text>
 <text class="lbl" x="113.6" y="294" text-anchor="middle">dotfiles</text>
-<text class="lbl cnt" x="113.6" y="306" text-anchor="middle">41 коммит</text>
+<text class="lbl cnt" x="113.6" y="306" text-anchor="middle">41 commits</text>
 </svg>

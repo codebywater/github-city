@@ -78,8 +78,8 @@ test("предупреждает, когда расписание скоро о�
   execFileSync("git", ["commit", "-qm", "init"], { cwd: repo, env: { ...ENV, GIT_AUTHOR_DATE: when, GIT_COMMITTER_DATE: when } });
   const res = runStep(repo);
   assert.equal(res.status, 0, res.stderr);
-  assert.match(res.stdout, /Город не изменился/);
-  assert.match(res.stdout, /::warning title=GitHub City::.*55 дн/);
+  assert.match(res.stdout, /The city has not changed/);
+  assert.match(res.stdout, /::warning title=GitHub City::.*55 days/);
 
   // Свежий коммит — предупреждения нет.
   write(path.join(repo, "README.md"), "x\n");

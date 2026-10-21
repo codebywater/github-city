@@ -113,8 +113,30 @@ function layout(repos) {
  */
 const MAX_HOUSES = 36;
 
-function render(data, { theme = "light", title = true, max = MAX_HOUSES } = {}) {
+// Подписи на картинке. По умолчанию английские: action ставят люди со всего GitHub.
+const TEXTS = {
+  en: {
+    commits: (n) => `${n} commit${n === 1 ? "" : "s"}`,
+    houses: (n) => `${n} building${n === 1 ? "" : "s"}`,
+    repos: (n) => `${n} repositor${n === 1 ? "y" : "ies"}`,
+    ofRepos: (n) => `(of ${n} repositor${n === 1 ? "y" : "ies"})`,
+    city: (user) => `${user}'s repository city`,
+    shown: (n) => `showing the ${n} largest`,
+  },
+  ru: {
+    commits: (n) => `${n} ${plural(n, "коммит", "коммита", "коммитов")}`,
+    houses: (n) => `${n} ${plural(n, "дом", "дома", "домов")}`,
+    repos: (n) => `${n} ${plural(n, "репозиторий", "репозитория", "репозиториев")}`,
+    ofRepos: (n) => `(из ${n} ${plural(n, "репозитория", "репозиториев", "репозиториев")})`,
+    city: (user) => `Город репозиториев ${user}`,
+    shown: (n) => `на картинке ${n} крупнейших`,
+  },
+};
+
+function render(data, { theme = "light", title = true, max = MAX_HOUSES, lang = "en" } = {}) {
   const t = THEMES[theme];
+  const L = TEXTS[lang];
+  if (!L) throw new Error(`Unknown lang "${lang}": use ${Object.keys(TEXTS).join(" or ")}`);
   const all = data.repos;
   const repos = max > 0 && all.length > max ? [...all].sort(byCommits).slice(0, max) : all;
   const hidden = all.length - repos.length;
@@ -141,10 +163,9 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES } = {}) 
 
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(W)}" height="${Math.round(H)}" viewBox="0 0 ${Math.round(W)} ${Math.round(H)}" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-labelledby="city-title">`);
   const totalCommits = all.reduce((a, r) => a + r.commits, 0);
-  const commitsText = `${totalCommits} ${plural(totalCommits, "коммит", "коммита", "коммитов")}`;
-  const housesText = `${repos.length} ${plural(repos.length, "дом", "дома", "домов")}` +
-    (hidden ? ` (из ${all.length} ${plural(all.length, "репозитория", "репозиториев", "репозиториев")})` : "");
-  out.push(`<title id="city-title">Город репозиториев ${esc(data.user)}: ${housesText}, ${commitsText}</title>`);
+  const commitsText = L.commits(totalCommits);
+  const housesText = L.houses(repos.length) + (hidden ? ` ${L.ofRepos(all.length)}` : "");
+  out.push(`<title id="city-title">${esc(L.city(data.user))}: ${housesText}, ${commitsText}</title>`);
   out.push(`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.skyTop}"/><stop offset="1" stop-color="${t.skyBottom}"/></linearGradient>`);
   out.push(`<style>.lbl{font-size:11px;font-weight:600;fill:${t.text};paint-order:stroke;stroke:${t.halo};stroke-width:3px;stroke-linejoin:round}.cnt{font-size:10px;font-weight:500;fill:${t.muted}}` +
     (theme === "dark" ? `@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}.on{animation:blink 4s ease-in-out infinite}.tw{animation:blink 3s ease-in-out infinite}` : "") +
@@ -170,11 +191,11 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES } = {}) 
   if (title) {
     // Заголовок не должен заходить на солнце/луну (их левый край — cx - 26).
     const room = cx - 26 - 8 - (pad - 16);
-    const sub = `${all.length} ${plural(all.length, "репозиторий", "репозитория", "репозиториев")} · ${commitsText}`;
+    const sub = `${L.repos(all.length)} · ${commitsText}`;
     out.push(`<text x="${pad - 16}" y="34" font-size="18" font-weight="700" fill="${t.text}">${esc(fit(data.user, room, 18, true))}</text>`);
     out.push(`<text x="${pad - 16}" y="54" font-size="12" fill="${t.muted}">${esc(fit(sub, room, 12))}</text>`);
     // Отдельной строкой, чтобы пометка о неполной картинке не обрезалась на узком холсте.
-    if (hidden) out.push(`<text x="${pad - 16}" y="70" font-size="12" fill="${t.muted}">${esc(fit(`на картинке ${repos.length} крупнейших`, room, 12))}</text>`);
+    if (hidden) out.push(`<text x="${pad - 16}" y="70" font-size="12" fill="${t.muted}">${esc(fit(L.shown(repos.length), room, 12))}</text>`);
   }
 
   // Земля: плита толщиной 10px.
@@ -219,7 +240,7 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES } = {}) 
     const left = [P(x0, y1), P(x1, y1), P(x1, y1, h), P(x0, y1, h)];
     const right = [P(x1, y1), P(x1, y0), P(x1, y0, h), P(x1, y1, h)];
     const top = [P(x0, y0, h), P(x1, y0, h), P(x1, y1, h), P(x0, y1, h)];
-    out.push(`<g><title>${esc(repo.name)}: ${repo.commits} ${plural(repo.commits, "коммит", "коммита", "коммитов")}${repo.language ? ", " + esc(repo.language) : ""}</title>`);
+    out.push(`<g><title>${esc(repo.name)}: ${L.commits(repo.commits)}${repo.language ? ", " + esc(repo.language) : ""}</title>`);
     out.push(`<polygon points="${pts(left)}" fill="${shade(base, theme === "dark" ? -0.25 : -0.08)}"/>`);
     out.push(`<polygon points="${pts(right)}" fill="${shade(base, theme === "dark" ? -0.5 : -0.3)}"/>`);
     out.push(`<polygon points="${pts(top)}" fill="${shade(base, 0.3)}"/>`);
@@ -246,7 +267,7 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES } = {}) 
     // Имя не шире клетки: тогда соседние подписи не наезжают друг на друга и не уходят за край.
     // Полное имя остаётся в <title> дома.
     labels.push(`<text class="lbl" x="${r1(lx)}" y="${r1(ly - 16)}" text-anchor="middle">${esc(fit(repo.name, LABEL_PX, 11, true))}</text>`);
-    labels.push(`<text class="lbl cnt" x="${r1(lx)}" y="${r1(ly - 4)}" text-anchor="middle">${repo.commits} ${plural(repo.commits, "коммит", "коммита", "коммитов")}</text>`);
+    labels.push(`<text class="lbl cnt" x="${r1(lx)}" y="${r1(ly - 4)}" text-anchor="middle">${L.commits(repo.commits)}</text>`);
   }
   out.push(...labels);
 

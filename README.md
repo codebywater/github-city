@@ -1,30 +1,33 @@
 # 🏙 GitHub City
 
+**English** · [Русский](README.ru.md)
+
 [![tests](https://github.com/codebywater/github-city/actions/workflows/tests.yml/badge.svg)](https://github.com/codebywater/github-city/actions/workflows/tests.yml)
 ![license](https://img.shields.io/badge/license-MIT-blue)
+![dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 
-**Изометрический город из ваших репозиториев для README профиля.** Каждый репозиторий — дом: высота зависит от числа коммитов, цвет — от языка. Днём светит солнце, ночью горят окна и мерцают звёзды: картинка сама подстраивается под светлую или тёмную тему GitHub.
+**Your repositories as an isometric city, right in your GitHub profile README.** Every repository is a building: the more commits, the taller it is; the colour comes from its main language. In daylight the sun is out; at night the windows light up and the stars twinkle — the picture follows GitHub's light or dark theme on its own.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/city-dark.svg">
-  <img alt="Город репозиториев codebywater" src="assets/city-light.svg">
+  <img alt="An isometric city of codebywater's repositories" src="assets/city-light.svg">
 </picture>
 
-> **English summary.** Turns your public repositories into an isometric SVG city for your GitHub profile README: building height grows with the number of commits, color = main language, light and dark versions. A GitHub Action redraws it daily. Zero dependencies.
+A GitHub Action redraws the city every day: new repositories become new buildings, and buildings grow with your commits. No dependencies, no external services — just the GitHub API and an SVG file in your repo.
 
-## Как добавить в профиль
+## Add it to your profile
 
-1. В репозитории профиля (`ваш-ник/ваш-ник`) создайте файл `.github/workflows/city.yml`:
+1. In your profile repository (`your-name/your-name`) create `.github/workflows/city.yml`:
 
    ```yaml
    name: GitHub City
    on:
      schedule:
-       - cron: "0 3 * * *"   # каждый день в 03:00 UTC
+       - cron: "0 3 * * *"   # every day at 03:00 UTC
      workflow_dispatch:
    permissions:
      contents: write
-   concurrency:              # ручной запуск и запуск по расписанию не толкаются друг с другом
+   concurrency:              # a manual run and a scheduled run never push over each other
      group: github-city
      cancel-in-progress: false
    jobs:
@@ -35,65 +38,67 @@
          - uses: codebywater/github-city@v1
    ```
 
-2. Запустите его вручную: **Actions → GitHub City → Run workflow**. В репозитории появятся `assets/city-light.svg` и `assets/city-dark.svg`.
+2. Run it once by hand: **Actions → GitHub City → Run workflow**. `assets/city-light.svg` and `assets/city-dark.svg` appear in the repository.
 
-3. Добавьте в README профиля:
+3. Add this to your profile README:
 
    ```html
    <picture>
      <source media="(prefers-color-scheme: dark)" srcset="assets/city-dark.svg">
-     <img alt="Мой город репозиториев" src="assets/city-light.svg">
+     <img alt="My repository city" src="assets/city-light.svg">
    </picture>
    ```
 
-Дальше город будет перестраиваться каждый день: новые репозитории — новые дома, а высота домов меняется вслед за числом коммитов.
+That's it — the city rebuilds itself every day.
 
-> **Расписание и 60 дней тишины.** GitHub [отключает](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#schedule) запуск по расписанию в публичном репозитории, если в нём 60 дней не было активности. Action коммитит только когда город изменился, поэтому после долгого перерыва в коммитах расписание может отключиться. Как этого избежать:
+> **Schedules and 60 quiet days.** GitHub [disables](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#schedule) scheduled workflows in public repositories after 60 days without activity. The action only commits when the picture changes, so a quiet profile can hit that limit.
 >
-> - любой коммит в репозиторий профиля (например, правка README) сбрасывает счётчик;
-> - начиная с 50-го дня без коммитов action пишет предупреждение в лог запуска;
-> - если расписание уже отключено, включите его: **Actions → GitHub City → Enable workflow**, затем **Run workflow**. Сам по себе новый коммит отключённое расписание не включает.
+> - Any commit to the profile repository (for example, editing the README) resets the counter.
+> - From day 50 without commits the action writes a warning to the run log.
+> - If the schedule is already disabled, re-enable it: **Actions → GitHub City → Enable workflow**, then **Run workflow**.
 
-## Настройки
+## Options
 
-| Параметр | По умолчанию | Что делает |
+| Input | Default | What it does |
 |---|---|---|
-| `user` | владелец репозитория | Чей город рисовать |
-| `out` | `assets` | Папка для картинок |
-| `exclude` | — | Скрыть репозитории: `dotfiles,test-repo` |
-| `forks` | `false` | Показывать форки |
-| `max-repos` | `36` | Сколько домов рисовать (самые большие по коммитам), `0` — все |
-| `commit` | `true` | Коммитить картинки, если изменились |
-| `token` | `${{ github.token }}` | Токен для GitHub API |
+| `user` | repository owner | Whose city to draw |
+| `out` | `assets` | Folder for the images |
+| `exclude` | — | Repositories to hide: `dotfiles,test-repo` |
+| `forks` | `false` | Include forks |
+| `max-repos` | `36` | How many buildings to draw (the largest by commits); `0` draws all |
+| `commit` | `true` | Commit the images when they change |
+| `token` | `${{ github.token }}` | Token for the GitHub API |
+| `lang` | `en` | Language of the labels on the picture: `en` or `ru` |
 
 ```yaml
 - uses: codebywater/github-city@v1
   with:
     exclude: dotfiles,playground
+    max-repos: 20
 ```
 
-## Как это устроено
+## How it works
 
-- Берутся ваши публичные репозитории, кроме форков, пустых, репозитория профиля и репозитория, в котором работает action (туда коммитится картинка, и его счётчик коммитов растёт от самого action).
-- Число коммитов считается по основной ветке через GitHub API, без клонирования.
-- Высота дома растёт как корень из числа коммитов: самый большой проект не задавит остальные.
-- Высокие дома ставятся в глубину, низкие — вперёд, чтобы ничего не загораживало. На свободных участках растут деревья.
-- Больше 36 домов в колонке README уже не читаются, поэтому рисуются 36 самых больших репозиториев, а в подзаголовке написано, сколько их всего. Слишком длинные имена обрезаются с «…», полное имя видно во всплывающей подсказке.
-- Одинаковые данные дают одинаковую картинку, поэтому лишних коммитов «Update GitHub City» не будет. Коммиты самого action не считаются: репозиторий, в котором он работает, в город не попадает. Не считать только коммиты «Update GitHub City» надёжно нельзя — GitHub API не фильтрует коммиты по сообщению.
-- Если пока action рисовал город, в ветку что-то запушили, он подтянет изменения и попробует запушить ещё раз (до трёх попыток).
+- It takes your public repositories, except forks, empty ones, your profile repository and the repository the action runs in (so its own daily commits never grow a building).
+- Commits are counted on the default branch through the GitHub API, without cloning anything.
+- Building height grows with the square root of commits, scaled to your largest repository, so one huge project doesn't flatten the rest.
+- Tall buildings stand at the back and short ones in front, so nothing hides anything. Empty lots get trees.
+- More than 36 buildings stop being readable in a README column, so the 36 largest are drawn and the subtitle says so.
+- The same data always produces the same picture, byte for byte — no empty "Update GitHub City" commits.
+- If something was pushed while the action was drawing, it pulls the changes and retries the push (up to three times).
 
-## Запуск на своём компьютере
+## Run it locally
 
-Нужен Node.js 18+, зависимостей нет.
+Node.js 18+, no dependencies.
 
 ```bash
 git clone https://github.com/codebywater/github-city
 cd github-city
-node src/cli.js ваш-ник --out preview      # с GITHUB_TOKEN лимит API выше
-npm run example                            # город из examples/data.json, без интернета
+node src/cli.js your-name --out preview   # set GITHUB_TOKEN for a higher API limit
+npm run example                           # city from examples/data.json, no network needed
 npm test
 ```
 
-## Лицензия
+## License
 
 MIT
