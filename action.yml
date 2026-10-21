@@ -1,0 +1,58 @@
+name: GitHub City
+description: Рисует изометрический город из ваших репозиториев для README профиля. Высота дома — число коммитов.
+author: codebywater
+branding:
+  icon: home
+  color: blue
+
+inputs:
+  user:
+    description: Пользователь GitHub. По умолчанию — владелец репозитория.
+    default: ${{ github.repository_owner }}
+  out:
+    description: Папка для city-light.svg и city-dark.svg.
+    default: assets
+  exclude:
+    description: Репозитории, которые не нужно показывать, через запятую.
+    default: ""
+  forks:
+    description: Показывать форки (true/false).
+    default: "false"
+  commit:
+    description: Закоммитить картинки, если они изменились (true/false).
+    default: "true"
+  token:
+    description: Токен для GitHub API.
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Draw the city
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        CITY_USER: ${{ inputs.user }}
+        CITY_OUT: ${{ inputs.out }}
+        CITY_EXCLUDE: ${{ inputs.exclude }}
+        CITY_FORKS: ${{ inputs.forks }}
+      run: |
+        args=("$CITY_USER" --out "$CITY_OUT")
+        [ -n "$CITY_EXCLUDE" ] && args+=(--exclude "$CITY_EXCLUDE")
+        [ "$CITY_FORKS" = "true" ] && args+=(--forks)
+        node "$GITHUB_ACTION_PATH/src/cli.js" "${args[@]}"
+    - name: Commit
+      if: inputs.commit == 'true'
+      shell: bash
+      env:
+        CITY_OUT: ${{ inputs.out }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add "$CITY_OUT"/city-*.svg
+        if git diff --cached --quiet; then
+          echo "Город не изменился."
+        else
+          git commit -m "Update GitHub City"
+          git push
+        fi

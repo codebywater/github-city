@@ -1,0 +1,10 @@
+{
+  "user": "example",
+  "repos": [
+    { "name": "api", "language": "Go", "stars": 12, "commits": 340 },
+    { "name": "web", "language": "TypeScript", "stars": 30, "commits": 512 },
+    { "name": "bot", "language": "Python", "stars": 3, "commits": 88 },
+    { "name": "dotfiles", "language": "Shell", "stars": 0, "commits": 41 },
+    { "name": "firmware", "language": "C", "stars": 7, "commits": 129 }
+  ]
+}
