@@ -125,3 +125,44 @@ test("английские подписи по умолчанию, русски�
   const repos = Array.from({ length: 6 }, (_, i) => ({ name: `repo${i}`, language: "Go", commits: 10 + i }));
   assert.match(render({ user: "u", repos }, { max: 2 }), />showing the 2 largest</);
 });
+
+test("зима: снег на крышах и ёлках, падающие снежинки, без лишних изменений раскладки", () => {
+  const { seasonFor } = require("../src/render");
+  const plain = render(data), snowy = render(data, { season: "winter" });
+  assert.equal(render(data, { season: "none" }), plain);
+  assert.doesNotMatch(plain, /class="snow"|class="flake"|@keyframes fall/);
+  assert.match(snowy, /class="snow"/);
+  assert.equal((snowy.match(/class="flake"/g) || []).length, 36);
+  assert.match(snowy, /prefers-reduced-motion:reduce\)\{[^}]*\.flake\{animation:none\}/);
+  assert.equal(render(data, { season: "winter" }), snowy, "одинаковые данные — одинаковая картинка");
+  assert.doesNotMatch(snowy, /NaN|undefined/);
+  // Подписи и дома на тех же местах: снег только добавляется поверх.
+  const labelsOf = (svg) => svg.match(/<text class="lbl"[^>]*>[^<]*<\/text>/g);
+  assert.deepEqual(labelsOf(snowy), labelsOf(plain));
+  for (const theme of ["light", "dark"]) assert.match(render(data, { theme, season: "winter" }), /class="snow"/);
+  // Ёлки зимой получают шапки.
+  const withTrees = render({ user: "u", repos: [{ name: "a", language: "Go", commits: 1 }, { name: "b", language: "Go", commits: 2 }, { name: "c", language: "Go", commits: 3 }] }, { season: "winter" });
+  assert.ok((withTrees.match(/class="snow"/g) || []).length > 3 * 2);
+  assert.throws(() => render(data, { season: "spring" }), /Unknown season/);
+
+  const on = (s) => new Date(`${s}T12:00:00Z`);
+  assert.deepEqual(["2026-11-30", "2026-12-01", "2027-01-15", "2027-02-28", "2027-03-01"].map((d) => seasonFor("auto", on(d))),
+    ["none", "winter", "winter", "winter", "none"]);
+  assert.equal(seasonFor("winter", on("2026-07-01")), "winter");
+  assert.equal(seasonFor("none", on("2026-12-25")), "none");
+  assert.throws(() => seasonFor("spring", on("2026-07-01")), /Unknown season/);
+});
+
+test("CLI: --season winter рисует снег, неизвестный сезон — ошибка", () => {
+  const { spawnSync } = require("node:child_process");
+  const path = require("node:path"), os = require("node:os"), fs = require("node:fs");
+  const cli = path.join(__dirname, "../src/cli.js"), src = path.join(__dirname, "../examples/data.json");
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), "city-season-"));
+  const ok = spawnSync("node", [cli, "--data", src, "--out", out, "--season", "winter"], { encoding: "utf8" });
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.match(fs.readFileSync(path.join(out, "city-dark.svg"), "utf8"), /class="snow"/);
+  const bad = spawnSync("node", [cli, "--data", src, "--out", out, "--season", "spring"], { encoding: "utf8" });
+  assert.notEqual(bad.status, 0);
+  assert.match(bad.stderr, /Unknown season/);
+  fs.rmSync(out, { recursive: true, force: true });
+});

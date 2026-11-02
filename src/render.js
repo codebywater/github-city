@@ -26,6 +26,20 @@ const THEMES = {
   },
 };
 
+// Зимой меняются только эти цвета; всё остальное берётся из обычной темы.
+const WINTER = {
+  light: { road: "#dfe6ee", plot: "#f7fafd", freePlot: "#eef3f8", snow: "#ffffff", snowShade: "#dce6f1", flake: "#a9bdd4", groundEdge: "#c3cfdc" },
+  dark: { road: "#2b3444", plot: "#465368", freePlot: "#3b4759", snow: "#e6edf6", snowShade: "#b9c6d8", flake: "#ffffff", groundEdge: "#1a2230" },
+};
+const SEASONS = ["none", "winter"];
+
+// Какой сезон рисовать. auto — по месяцу в северном полушарии: снег с декабря по февраль.
+function seasonFor(value, date) {
+  if (value === "auto") return [12, 1, 2].includes(date.getUTCMonth() + 1) ? "winter" : "none";
+  if (!SEASONS.includes(value)) throw new Error(`Unknown season "${value}": use auto, ${SEASONS.join(" or ")}`);
+  return value;
+}
+
 // Детерминированный генератор псевдослучайных чисел (mulberry32).
 function rng(seed) {
   let a = seed >>> 0;
@@ -133,8 +147,10 @@ const TEXTS = {
   },
 };
 
-function render(data, { theme = "light", title = true, max = MAX_HOUSES, lang = "en" } = {}) {
-  const t = THEMES[theme];
+function render(data, { theme = "light", title = true, max = MAX_HOUSES, lang = "en", season = "none" } = {}) {
+  if (!SEASONS.includes(season)) throw new Error(`Unknown season "${season}": use ${SEASONS.join(" or ")}`);
+  const winter = season === "winter" ? WINTER[theme] : null;
+  const t = { ...THEMES[theme], ...winter };
   const L = TEXTS[lang];
   if (!L) throw new Error(`Unknown lang "${lang}": use ${Object.keys(TEXTS).join(" or ")}`);
   const all = data.repos;
@@ -169,7 +185,8 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES, lang = 
   out.push(`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.skyTop}"/><stop offset="1" stop-color="${t.skyBottom}"/></linearGradient>`);
   out.push(`<style>.lbl{font-size:11px;font-weight:600;fill:${t.text};paint-order:stroke;stroke:${t.halo};stroke-width:3px;stroke-linejoin:round}.cnt{font-size:10px;font-weight:500;fill:${t.muted}}` +
     (theme === "dark" ? `@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}.on{animation:blink 4s ease-in-out infinite}.tw{animation:blink 3s ease-in-out infinite}` : "") +
-    `@media (prefers-reduced-motion:reduce){.on,.tw{animation:none}}</style></defs>`);
+    (winter ? `@keyframes fall{from{transform:translateY(-${Math.round(H)}px)}to{transform:translateY(${Math.round(H)}px)}}.flake{animation:fall linear infinite}` : "") +
+    `@media (prefers-reduced-motion:reduce){.on,.tw${winter ? ",.flake" : ""}{animation:none}}</style></defs>`);
   out.push(`<rect width="100%" height="100%" rx="12" fill="url(#sky)"/>`);
 
   // Звёзды в тёмной теме.
@@ -211,7 +228,7 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES, lang = 
     return [P(x0, y0), P(x0 + s, y0), P(x0 + s, y0 + s), P(x0, y0 + s)];
   };
   for (const { i, j } of placed) out.push(`<polygon points="${pts(plotOf(i, j, 0.18))}" fill="${t.plot}"/>`);
-  for (const [i, j] of free) out.push(`<polygon points="${pts(plotOf(i, j, 0.18))}" fill="${shade(t.tree, theme === "dark" ? -0.55 : 0.55)}"/>`);
+  for (const [i, j] of free) out.push(`<polygon points="${pts(plotOf(i, j, 0.18))}" fill="${winter ? t.freePlot : shade(t.tree, theme === "dark" ? -0.55 : 0.55)}"/>`);
 
   // Всё объёмное рисуем сзади вперёд.
   const items = [];
@@ -231,6 +248,12 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES, lang = 
       out.push(`<rect x="${r1(bx - 1.5)}" y="${r1(by - 5)}" width="3" height="6" fill="${t.trunk}"/>`);
       out.push(`<polygon points="${pts([[bx, by - 5 - it.h], [bx + 7, by - 4], [bx, by - 2]])}" fill="${t.treeDark}"/>`);
       out.push(`<polygon points="${pts([[bx, by - 5 - it.h], [bx - 7, by - 4], [bx, by - 2]])}" fill="${t.tree}"/>`);
+      if (winter) {
+        // Снежная шапка: верхние 45% ёлки.
+        const tip = by - 5 - it.h, cut = tip + it.h * 0.45;
+        out.push(`<polygon class="snow" points="${pts([[bx, tip], [bx + 3.2, cut], [bx, cut + 1.5]])}" fill="${t.snowShade}"/>`);
+        out.push(`<polygon class="snow" points="${pts([[bx, tip], [bx - 3.2, cut], [bx, cut + 1.5]])}" fill="${t.snow}"/>`);
+      }
       continue;
     }
     const { repo, i, j } = it.p;
@@ -244,6 +267,22 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES, lang = 
     out.push(`<polygon points="${pts(left)}" fill="${shade(base, theme === "dark" ? -0.25 : -0.08)}"/>`);
     out.push(`<polygon points="${pts(right)}" fill="${shade(base, theme === "dark" ? -0.5 : -0.3)}"/>`);
     out.push(`<polygon points="${pts(top)}" fill="${shade(base, 0.3)}"/>`);
+    const snowDrips = [];
+    if (winter) {
+      // Снег на крыше с тонким цветным бортиком и наплывы на передних краях.
+      const m = 0.045;
+      out.push(`<polygon class="snow" points="${pts([P(x0 + m, y0 + m, h), P(x1 - m, y0 + m, h), P(x1 - m, y1 - m, h), P(x0 + m, y1 - m, h)])}" fill="${t.snow}"/>`);
+      const dr = rng(hash(`snow:${repo.name}`));
+      for (const [face, from, to] of [["left", x0, x1], ["right", y1, y0]]) {
+        for (let f = 0.08; f < 0.86; f += 0.14 + dr() * 0.12) {
+          const a = from + (to - from) * f, b = from + (to - from) * (f + 0.1), mid = (a + b) / 2, d = 3 + dr() * 5;
+          const q = face === "left"
+            ? [P(a, y1, h), P(b, y1, h), P(mid, y1, h - d)]
+            : [P(x1, a, h), P(x1, b, h), P(x1, mid, h - d)];
+          snowDrips.push(`<polygon class="snow" points="${pts(q)}" fill="${face === "left" ? t.snow : t.snowShade}"/>`);
+        }
+      }
+    }
 
     // Окна: ряды по 13px, по два окна на каждой стене.
     const wr = rng(hash(repo.name));
@@ -260,7 +299,7 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES, lang = 
         }
       }
     }
-    out.push(`</g>`);
+    out.push(...snowDrips, `</g>`);
 
     // Подписи — после всех домов, чтобы передние дома их не закрывали.
     const [lx, ly] = P(x0 + FOOT / 2, y0 + FOOT / 2, h);
@@ -269,10 +308,18 @@ function render(data, { theme = "light", title = true, max = MAX_HOUSES, lang = 
     labels.push(`<text class="lbl" x="${r1(lx)}" y="${r1(ly - 16)}" text-anchor="middle">${esc(fit(repo.name, LABEL_PX, 11, true))}</text>`);
     labels.push(`<text class="lbl cnt" x="${r1(lx)}" y="${r1(ly - 4)}" text-anchor="middle">${L.commits(repo.commits)}</text>`);
   }
+  if (winter) {
+    // Падающий снег: свой генератор, чтобы не менять раскладку деревьев и окон.
+    const fr = rng(hash(`flakes:${seed}`));
+    for (let k = 0; k < 36; k++) {
+      const dur = 9 + fr() * 9;
+      out.push(`<circle class="flake" style="animation-duration:${r1(dur)}s;animation-delay:-${r1(fr() * dur)}s" cx="${r1(fr() * W)}" cy="${r1(fr() * H)}" r="${r1(0.8 + fr() * 1.4)}" fill="${t.flake}" opacity="${r1(0.45 + fr() * 0.45)}"/>`);
+    }
+  }
   out.push(...labels);
 
   out.push(`</svg>`);
   return out.join("\n") + "\n";
 }
 
-module.exports = { render, layout, shade, plural, fit, textWidth, MAX_HOUSES, LANG_COLORS };
+module.exports = { render, layout, shade, plural, fit, textWidth, seasonFor, MAX_HOUSES, LANG_COLORS };

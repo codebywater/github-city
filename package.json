@@ -6,6 +6,6 @@
   "bin": { "github-city": "src/cli.js" },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "example": "node src/cli.js --data examples/data.json --out examples"
+    "example": "node src/cli.js --data examples/data.json --out examples --season none"
   }
 }

@@ -2,9 +2,10 @@
 /*
  * Использование:
  *   node src/cli.js <пользователь> [--out папка] [--exclude repo1,repo2] [--forks] [--max 36]
- *                   [--lang en|ru] [--host владелец/репо] [--data data.json]
+ *                   [--lang en|ru] [--season auto|winter|none] [--host владелец/репо] [--data data.json]
  * Создаёт city-light.svg и city-dark.svg. Токен берётся из GITHUB_TOKEN или INPUT_TOKEN.
  * --lang   язык подписей на картинке: en (по умолчанию) или ru.
+ * --season auto (по умолчанию) — снег с декабря по февраль, winter — всегда, none — никогда.
  * --max    сколько домов рисовать (самые большие по коммитам), 0 — без ограничения.
  * --host   репозиторий, куда коммитится картинка: он не попадает в город (см. github.js).
  * --data   читает данные из JSON вместо GitHub API (для офлайн-проверки).
@@ -12,12 +13,12 @@
 "use strict";
 const fs = require("fs");
 const path = require("path");
-const { render } = require("./render");
+const { render, seasonFor } = require("./render");
 const { fetchCity } = require("./github");
 
 async function main() {
   const argv = process.argv.slice(2);
-  const opt = { out: ".", exclude: [], forks: false, lang: "en" };
+  const opt = { out: ".", exclude: [], forks: false, lang: "en", season: "auto" };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--out") opt.out = argv[++i];
@@ -26,6 +27,7 @@ async function main() {
     else if (argv[i] === "--data") opt.data = argv[++i];
     else if (argv[i] === "--host") opt.host = argv[++i];
     else if (argv[i] === "--lang") opt.lang = (argv[++i] || "").trim() || "en";
+    else if (argv[i] === "--season") opt.season = (argv[++i] || "").trim() || "auto";
     else if (argv[i] === "--max") {
       // Пустое значение (например, max-repos: "" в action) — ошибка, а не «без ограничения».
       const v = argv[++i];
@@ -42,6 +44,8 @@ async function main() {
     console.error("--max must be an integer ≥ 0 (0 = no limit).");
     process.exit(1);
   }
+  // Сезон проверяем до запросов к API: опечатка не должна тратить лимит.
+  const season = seasonFor(opt.season, new Date());
   const data = opt.data
     ? JSON.parse(fs.readFileSync(opt.data, "utf8"))
     : await fetchCity(user, { token: process.env.GITHUB_TOKEN || process.env.INPUT_TOKEN, includeForks: opt.forks, exclude: opt.exclude, host: opt.host });
@@ -50,7 +54,7 @@ async function main() {
   fs.mkdirSync(opt.out, { recursive: true });
   for (const theme of ["light", "dark"]) {
     const file = path.join(opt.out, `city-${theme}.svg`);
-    fs.writeFileSync(file, render(data, { theme, max: opt.max, lang: opt.lang }));
+    fs.writeFileSync(file, render(data, { theme, max: opt.max, lang: opt.lang, season }));
     console.log(`Written: ${file}`);
   }
   console.log(data.repos.map((r) => `  ${r.name}: ${r.commits}`).join("\n"));

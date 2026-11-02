@@ -30,6 +30,9 @@ inputs:
   lang:
     description: Language of the labels on the picture, en or ru.
     default: en
+  season:
+    description: auto (snow from December to February), winter (always) or none.
+    default: auto
 
 runs:
   using: composite
@@ -44,11 +47,12 @@ runs:
         CITY_FORKS: ${{ inputs.forks }}
         CITY_MAX: ${{ inputs.max-repos }}
         CITY_LANG: ${{ inputs.lang }}
+        CITY_SEASON: ${{ inputs.season }}
         # Репозиторий, куда коммитится картинка, в город не попадает: иначе каждый
         # коммит «Update GitHub City» менял бы картинку и коммиты шли бы каждый день.
         CITY_HOST: ${{ github.repository }}
       run: |
-        args=("$CITY_USER" --out "$CITY_OUT" --host "$CITY_HOST" --lang "${CITY_LANG:-en}")
+        args=("$CITY_USER" --out "$CITY_OUT" --host "$CITY_HOST" --lang "${CITY_LANG:-en}" --season "${CITY_SEASON:-auto}")
         # Пустое max-repos — значение по умолчанию, а не «без ограничения».
         [ -n "$CITY_MAX" ] && args+=(--max "$CITY_MAX")
         [ -n "$CITY_EXCLUDE" ] && args+=(--exclude "$CITY_EXCLUDE")

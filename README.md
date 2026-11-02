@@ -69,6 +69,7 @@ That's it — the city rebuilds itself every day.
 | `commit` | `true` | Commit the images when they change |
 | `token` | `${{ github.token }}` | Token for the GitHub API |
 | `lang` | `en` | Language of the labels on the picture: `en` or `ru` |
+| `season` | `auto` | `auto`: snow from December to February; `winter`: always; `none`: never |
 
 ```yaml
 - uses: codebywater/github-city@v1
@@ -77,6 +78,15 @@ That's it — the city rebuilds itself every day.
     max-repos: 20
 ```
 
+## Winter ❄️
+
+From December to February the city gets snow on its roofs and trees, and flakes fall across the picture. It goes by the month, northern-hemisphere style, so if your winter is in July use `season: none` or set it by hand. Animation stops for people who prefer reduced motion.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/winter-dark.svg">
+  <img alt="The same city in winter, with snow on the roofs" src="examples/winter-light.svg" width="480">
+</picture>
+
 ## How it works
 
 - It takes your public repositories, except forks, empty ones, your profile repository and the repository the action runs in (so its own daily commits never grow a building).
@@ -84,7 +94,7 @@ That's it — the city rebuilds itself every day.
 - Building height grows with the square root of commits, scaled to your largest repository, so one huge project doesn't flatten the rest.
 - Tall buildings stand at the back and short ones in front, so nothing hides anything. Empty lots get trees.
 - More than 36 buildings stop being readable in a README column, so the 36 largest are drawn and the subtitle says so.
-- The same data always produces the same picture, byte for byte — no empty "Update GitHub City" commits.
+- The same data always produces the same picture, byte for byte — no empty "Update GitHub City" commits. The season changes it twice a year: on 1 December and 1 March.
 - If something was pushed while the action was drawing, it pulls the changes and retries the push (up to three times).
 
 ## Run it locally
